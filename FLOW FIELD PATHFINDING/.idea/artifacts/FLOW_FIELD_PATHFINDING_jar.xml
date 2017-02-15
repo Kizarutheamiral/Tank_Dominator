@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="FLOW FIELD PATHFINDING:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/FLOW_FIELD_PATHFINDING_jar</output-path>
+    <root id="archive" name="FLOW FIELD PATHFINDING.jar">
+      <element id="module-output" name="FLOW FIELD PATHFINDING" />
+    </root>
+  </artifact>
+</component>
