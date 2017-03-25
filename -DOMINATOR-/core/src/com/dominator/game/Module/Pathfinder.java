@@ -13,7 +13,6 @@ import java.util.*;
  */
 public class Pathfinder {
 
-    Map map;
     QuadTree quadTree;
     private float maxSearchDistance = 1000000f;
     private final List<AstarNodes> vectorPool = new ArrayList<AstarNodes>();
@@ -21,8 +20,7 @@ public class Pathfinder {
     private SortedList open = new SortedList();
     private ArrayList<AstarNodes> path = new ArrayList<AstarNodes>();
 
-    public Pathfinder(Map map, QuadTree tree) {
-        this.map = map;
+    public Pathfinder(QuadTree tree) {
         this.quadTree = tree;
     }
 /*
@@ -195,6 +193,7 @@ public class Pathfinder {
         while (last.parent != null){
             path.add(last);
             last = last.parent;
+            System.out.println(last.getX()+" "+last.getY());
         }
 
         Collections.reverse(path);
@@ -313,7 +312,7 @@ public class Pathfinder {
                 float parentParentCost =  parent.parent.cost + parent.parent.dist(this);
 
                 if (los){
-                    System.out.println(" ligne of sight between:\n"+parent.parent.getX()+" "+parent.parent.getY()+","+getX()+" "+getY());
+                   // System.out.println(" ligne of sight between:\n"+parent.parent.getX()+" "+parent.parent.getY()+","+getX()+" "+getY());
 
                     if(parentParentCost<=cost){
                         this.parent = parent.parent;

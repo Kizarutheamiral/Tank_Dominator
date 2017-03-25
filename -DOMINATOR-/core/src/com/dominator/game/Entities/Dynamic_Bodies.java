@@ -7,5 +7,4 @@ public interface Dynamic_Bodies {
     void follow_Flow_field();
     void follow_Path();
     void show();
-
 }

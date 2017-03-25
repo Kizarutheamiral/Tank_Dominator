@@ -18,6 +18,7 @@ import com.badlogic.gdx.utils.viewport.ExtendViewport;
 import com.badlogic.gdx.utils.viewport.StretchViewport;
 import com.dominator.game.Entities.Abrams;
 import com.dominator.game.Entities.Map;
+import com.dominator.game.Entities.Tank;
 import com.dominator.game.Module.Pathfinder;
 import com.dominator.game.Quadtree.Func;
 import com.dominator.game.Quadtree.Node;
@@ -34,18 +35,12 @@ import com.dominator.game.System.GameStateManager;
  */
 public class PlayScreen implements Screen, GestureDetector.GestureListener, InputProcessor{
 
-    Engine engine;
-    private Stage stage;
     SpriteBatch batch;
     Texture img;
-    private World world;
     Box2DDebugRenderer render;
     public OrthographicCamera camera;
-    public Abrams hero;
-    Map map;
     public Pathfinder finder;
-    private ShapeRenderer shapeRenderer;
-    public Rectangle rectangle;
+    private  ShapeRenderer shapeRenderer;
     private boolean debug = true;
     private Texture texture;
 
@@ -53,16 +48,17 @@ public class PlayScreen implements Screen, GestureDetector.GestureListener, Inpu
     private int X_UNIT = 200;
     private int Y_UNIT = 200;
     private Vector3 previousCamPosition;
-    private Vector3 previous;
+    private Vector3 previous = new Vector3();
 
     @Override
     public void show() {
+
+        GameEventManager.instance().setup();
+
         batch = new SpriteBatch();
-        engine = new Engine();
         camera = new OrthographicCamera();
         batch = new SpriteBatch();
         render = new Box2DDebugRenderer();
-        map = new Map().loadMap(engine.getWorld());
         shapeRenderer = new ShapeRenderer();
 
         // texture = new Texture(Gdx.files.internal("font.png"));
@@ -81,25 +77,26 @@ public class PlayScreen implements Screen, GestureDetector.GestureListener, Inpu
         im.addProcessor(this);
         Gdx.input.setInputProcessor(im);
 
-        generate_Hero();
     }
 
     @Override
     public void render(float delta) {
+        GameEventManager.instance().update(delta, camera, render);
+
         camUpdate();
+
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-        engine.tick(delta, camera, render);
-        batch.begin();
-        //: batch.draw(texture, 10, 10);
-        batch.end();
+
+        render.render(GameEventManager.instance().engine.getWorld(),camera.combined);
+        shapeRenderer.setProjectionMatrix(camera.combined);
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
 
         if(debug) {
-            shapeRenderer.setProjectionMatrix(camera.combined);
-            shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+
             shapeRenderer.setColor(1, 1, 1, 1);
 
 
-            map.quadTree.navigate(map.quadTree.getRootNode(), new Func() {
+            GameEventManager.instance().map.quadTree.navigate(GameEventManager.instance().map.quadTree.getRootNode(), new Func() {
                 @Override
                 public void call(QuadTree quadTree, Node node) {
                     if(node.getNodeType() == NodeType.LEAF_EMPTY){
@@ -111,15 +108,28 @@ public class PlayScreen implements Screen, GestureDetector.GestureListener, Inpu
                 }
             },0,0,1800,1800);
 
+            for (Tank tank: GameEventManager.instance().tanks) {
+                shapeRenderer.setColor(1, 1, 0, 1);
 
+                float width = 20f;
+                if(tank.path != null){
+                    for (Pathfinder.AstarNodes node : tank.path){
+                        shapeRenderer.rect(node.getX()-width/2,node.getY()-width/2,width,width);
+
+                    }
+                }
+            }
         }
+
+
 
         shapeRenderer.end();
 
-    }
+        batch.begin();
+        //: batch.draw(texture, 10, 10);
+        batch.end();
 
-    private void generate_Hero() {
-        hero = new Abrams(20,20,engine.getWorld(), map);
+
     }
 
 

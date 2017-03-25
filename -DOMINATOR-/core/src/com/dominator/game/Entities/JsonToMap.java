@@ -358,7 +358,6 @@ public class JsonToMap {
             polygon.buffer = new Vector2[polygon.vertices.size()];
         }
 
-        System.out.println("now circles");
         // circles
 
         JsonValue circlesElem =  bodyElem.get("circles");
