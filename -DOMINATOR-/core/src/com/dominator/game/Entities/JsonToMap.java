@@ -9,14 +9,8 @@ import com.badlogic.gdx.physics.box2d.PolygonShape;
 import com.badlogic.gdx.utils.JsonReader;
 import com.badlogic.gdx.utils.JsonValue;
 import com.dominator.game.Quadtree.Node;
-
-
-import java.awt.*;
-import java.awt.geom.Ellipse2D;
-import java.awt.geom.Line2D;
 import java.util.*;
 import java.util.List;
-
 import static com.dominator.game.Entities.Map.scale;
 
 
@@ -226,19 +220,17 @@ public class JsonToMap {
         @Override
         public boolean intersect(Node node){
 
-            Rectangle.Float rectangle = new Rectangle.Float(node.getCenterX()-node.getW()/2, node.getCenterY()-node.getW()/2, node.getW(), node.getW());
             for (int i = 0, j = vertices.size() - 1; i < vertices.size(); j = i++) {
-                Line2D.Float ligne = new Line2D.Float(vertices.get(i).x*scale,vertices.get(i).y*scale,vertices.get(j).x*scale,vertices.get(j).y*scale);
-                if(ligne.intersects(rectangle)){
+                if(node.LigneIntersects(vertices.get(i).x*scale,vertices.get(i).y*scale,vertices.get(j).x*scale,vertices.get(j).y*scale)){
                     return true;
                 }
             }
-            if(     contain(node.getCenterX()-node.getW()/2,node.getCenterY()-node.getW()/2) ||
-                    contain(node.getCenterX()-node.getW()/2,node.getCenterY()+node.getW()/2) ||
-                    contain(node.getCenterX()+node.getW()/2,node.getCenterY()-node.getW()/2) ||
-                    contain(node.getCenterX()+node.getW()/2,node.getCenterY()+node.getW()/2)){
-                return true;
-            }
+
+
+            if (contain(node.getCenterX() - node.getW() / 2, node.getCenterY() - node.getW() / 2)) return true;
+            if (contain(node.getCenterX() - node.getW() / 2, node.getCenterY() + node.getW() / 2)) return true;
+            if (contain(node.getCenterX() + node.getW() / 2, node.getCenterY() - node.getW() / 2)) return true;
+            if (contain(node.getCenterX() + node.getW() / 2, node.getCenterY() + node.getW() / 2)) return true;
             return false;
         }
 
@@ -268,19 +260,16 @@ public class JsonToMap {
         public float radius;
         @Override
         public boolean contain(float x, float y ){
-            boolean result = false;
             if((x -center.x*scale)*(x -center.x*scale) + (y -center.y*scale)*(y -center.y*scale) <= (radius*scale)*(radius*scale)){
-                result = true;
+               return true;
             }
-            return result;
+            return false;
         }
         /// intersection with rectangle check
         @Override
         public boolean intersect(Node node){
             // first check if square inside of it
-            Rectangle.Float rectangle = new Rectangle.Float(node.getCenterX()-node.getW()/2, node.getCenterY()-node.getW()/2, node.getW(), node.getW());
-            Ellipse2D circle = new Ellipse2D.Float(center.x*scale-radius*scale,center.y*scale-radius*scale,radius*scale*2, radius*scale*2);
-            return circle.intersects(rectangle);
+            return node.CircleIntesects(center.x*scale,center.y*scale,radius*scale) || node.contain(center.x*scale,center.y*scale);
         }
 
         @Override

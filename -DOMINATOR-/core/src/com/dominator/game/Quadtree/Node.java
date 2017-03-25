@@ -1,11 +1,5 @@
 package com.dominator.game.Quadtree;
 
-import com.badlogic.gdx.math.Vector2;
-
-import java.awt.geom.Line2D;
-import java.awt.geom.Rectangle2D;
-import java.util.Map;
-
 public class Node implements Comparable {
 
     private float x;
@@ -36,29 +30,107 @@ public class Node implements Comparable {
         this.nodetype = type;
     }
 
+    public boolean CircleIntesects(float CircleX, float CircleY, float CircleRadius){
 
+        float X = getCenterX() - getW()/2;
+        float Y = getCenterY() - getW()/2;
+        float Width = getW();
 
-    //// Optimisation : faire le calcul soi meme sans la librairie Geom
-    public boolean RectIntersects(float left, float bottom, float width, float height) {
-        Rectangle2D rec1 = new Rectangle2D.Float(left,bottom,width,height);
-        Rectangle2D rec2 = new Rectangle2D.Float(getCenterX() - getW()/2,getCenterY() - getW()/2, getW(),getW());
-        return rec1.intersects(rec2);
+        float DeltaX = CircleX - Math.max(X, Math.min(CircleX, X + Width));
+        float DeltaY = CircleY - Math.max(Y, Math.min(CircleY, Y + Width));
+
+        return (DeltaX * DeltaX + DeltaY * DeltaY) < (CircleRadius * CircleRadius);
+
     }
 
+    // Node intersect Rectangle
+    public boolean RectIntersects(float x, float y, float width, float height) {
+
+        double x0 = getCenterX() - getW()/2;
+        double y0 = getCenterY() - getW()/2;
+
+        return (x + width > x0 &&
+                y + height > y0 &&
+                x < x0 + getW() &&
+                y < y0 + getW());
+
+    }
+
+    // Node intersect Ligne
     public boolean LigneIntersects(float x1, float y1, float x2, float y2){
-        Line2D ligne = new Line2D.Float(x1,y1,x2,y2);
-        Rectangle2D rec2 = new Rectangle2D.Float(getCenterX() - getW()/2,getCenterY() - getW()/2, getW(),getW());
-        return ligne.intersects(rec2);
+
+
+        float X = getCenterX() - getW()/2;
+        float Y = getCenterY() - getW()/2;
+        float Width = getW();
+
+        return LineIntersectsLine(x1,y1,x2,y2, X,Y, X + Width, Y) ||
+                LineIntersectsLine(x1,y1,x2,y2, X + Width, Y, X + Width, Y + Width) ||
+                LineIntersectsLine(x1,y1,x2,y2, X + Width, Y + Width, X, Y + Width) ||
+                LineIntersectsLine(x1,y1,x2,y2, X, Y + Width, X,Y) ||
+                (contain(x1,y1) && contain(x2,y2));
+    }
+
+    private static boolean LineIntersectsLine(float x1, float y1, float x2,float y2,float x3,float y3, float x4, float y4)
+    {
+
+        return ((relativeCCW(x1, y1, x2, y2, x3, y3) *
+                relativeCCW(x1, y1, x2, y2, x4, y4) <= 0)
+                && (relativeCCW(x3, y3, x4, y4, x1, y1) *
+                relativeCCW(x3, y3, x4, y4, x2, y2) <= 0));
     }
 
     public boolean contain(float x, float y) {
-        //return !(x>getCenterX()+getW()/2 || y>getCenterY()+getW()/2 || x<getCenterX()-getW()/2 || y<getCenterY()-getW()/2);
-        //System.out.println(x+" "+y);
-        if(x>getCenterX()-getW()/2 && x<getCenterX()+getW()/2 && y>getCenterY()-getW()/2 && y<getCenterY()+getW()/2){
-            return true;
-        }else {
-            return false;
+        return !(x>getCenterX()+getW()/2 || y>getCenterY()+getW()/2 || x<getCenterX()-getW()/2 || y<getCenterY()-getW()/2);
+    }
+
+    private boolean contain(Point p) {
+        return contain(p.x,p.y);
+    }
+
+    public static int relativeCCW(double x1, double y1,
+                                  double x2, double y2,
+                                  double px, double py)
+    {
+        x2 -= x1;
+        y2 -= y1;
+        px -= x1;
+        py -= y1;
+        double ccw = px * y2 - py * x2;
+        if (ccw == 0.0) {
+            // The point is colinear, classify based on which side of
+            // the segment the point falls on.  We can calculate a
+            // relative value using the projection of px,py onto the
+            // segment - a negative value indicates the point projects
+            // outside of the segment in the direction of the particular
+            // endpoint used as the origin for the projection.
+            ccw = px * x2 + py * y2;
+            if (ccw > 0.0) {
+                // Reverse the projection to be relative to the original x2,y2
+                // x2 and y2 are simply negated.
+                // px and py need to have (x2 - x1) or (y2 - y1) subtracted
+                //    from them (based on the original values)
+                // Since we really want to get a positive answer when the
+                //    point is "beyond (x2,y2)", then we want to calculate
+                //    the inverse anyway - thus we leave x2 & y2 negated.
+                px -= x2;
+                py -= y2;
+                ccw = px * x2 + py * y2;
+                if (ccw < 0.0) {
+                    ccw = 0.0;
+                }
+            }
         }
+        return (ccw < 0.0) ? -1 : ((ccw > 0.0) ? 1 : 0);
+    }
+
+    private boolean onSegment(Point p, Point q, Point r)
+    {
+        if (q.x <= Math.max(p.x, r.x) && q.x >= Math.min(p.x, r.x) &&
+                q.y <= Math.max(p.y, r.y) && q.y >= Math.min(p.y, r.y))
+            return true;
+
+        return false;
     }
 
     public float getCenterX() {

@@ -28,7 +28,6 @@ public class Abrams extends Tank{
         body = world.createBody(bd);
         body.createFixture(fd);
         body.getPosition().set(new Vector2(x,y));
-
     }
 
 

@@ -94,21 +94,25 @@ public class QuadTree {
             parent.setNodeType(NodeType.POINTER);
 
             parent.setSw(new Node(x+w/2, y+w/2, w, parent, NodeType.LEAF_EMPTY));
+            count_++;
             if(obstacle.intersect(parent.getSw())){
                 parent.getSw().setNodeType(NodeType.LEAF_OBSTRUCTED);
                 subdivide(obstacle,parent.getSw());
             }
             parent.setSe(new Node(x+3*w/2, y+w/2,w, parent, NodeType.LEAF_EMPTY));
+            count_++;
             if(obstacle.intersect(parent.getSe())){
                 parent.getSe().setNodeType(NodeType.LEAF_OBSTRUCTED);
                 subdivide(obstacle,parent.getSe());
             }
             parent.setNw(new Node(x+w/2, y+3*w/2, w , parent, NodeType.LEAF_EMPTY));
+            count_++;
             if(obstacle.intersect(parent.getNw())){
                 parent.getNw().setNodeType(NodeType.LEAF_OBSTRUCTED);
                 subdivide(obstacle,parent.getNw());
             }
             parent.setNe(new Node(x+3*w/2,y+3*w/2, w, parent, NodeType.LEAF_EMPTY));
+            count_++;
             if(obstacle.intersect(parent.getNe())){
                 parent.getNe().setNodeType(NodeType.LEAF_OBSTRUCTED);
                 subdivide(obstacle,parent.getNe());

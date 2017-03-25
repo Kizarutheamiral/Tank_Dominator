@@ -24,7 +24,7 @@ public class Map {
 
     public QuadTree quadTree;
 
-    public static final int step = 10;
+    public static final int step = 5;
     public static final int scale = 100;   // 1 m = 100 px
 
     private JsonToMap loader;
