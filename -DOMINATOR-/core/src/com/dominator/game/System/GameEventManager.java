@@ -52,12 +52,14 @@ public class GameEventManager {
 
         if (selection){
             for (Tank tank: selected) {
-                tank.path = finder.AstarPathFrom(tank.getX(),tank.getY(),x,y);
+                tank.setPath(finder.AstarPathFrom(tank.getX(),tank.getY(),x,y));
             }
-            selection = false;
         } else {
             for ( Tank t : tanks) {
                 if (t.contain(x,y)){
+                    if(selection){
+                        selected.clear();
+                    }
                     selection = true;
                     selected.add(t);
                 }

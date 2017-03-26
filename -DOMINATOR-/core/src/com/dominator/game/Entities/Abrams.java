@@ -15,7 +15,7 @@ public class Abrams extends Tank{
     private float width;
     private float heigth;
     public Abrams(float x, float y, World world, Map map) {
-        super(40,map);
+        super(4,map);
         BodyDef bd = new BodyDef();
         bd.position.set(x, y);
         bd.type = BodyDef.BodyType.DynamicBody;
