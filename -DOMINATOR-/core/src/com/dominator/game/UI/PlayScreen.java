@@ -20,10 +20,7 @@ import com.dominator.game.Entities.Abrams;
 import com.dominator.game.Entities.Map;
 import com.dominator.game.Entities.Tank;
 import com.dominator.game.Module.Pathfinder;
-import com.dominator.game.Quadtree.Func;
-import com.dominator.game.Quadtree.Node;
-import com.dominator.game.Quadtree.NodeType;
-import com.dominator.game.Quadtree.QuadTree;
+import com.dominator.game.Quadtree.*;
 import com.dominator.game.System.Engine;
 import com.dominator.game.System.GameEventManager;
 import com.dominator.game.System.GameState;
@@ -43,8 +40,6 @@ public class PlayScreen implements Screen, GestureDetector.GestureListener, Inpu
     private  ShapeRenderer shapeRenderer;
     private boolean debug = true;
     private Texture texture;
-
-
     private int X_UNIT = 200;
     private int Y_UNIT = 200;
     private Vector3 previousCamPosition;
@@ -112,12 +107,15 @@ public class PlayScreen implements Screen, GestureDetector.GestureListener, Inpu
                 shapeRenderer.setColor(1, 1, 0, 1);
 
                 float width = 20f;
+
                 if(tank.path != null){
-                    for (Pathfinder.AstarNodes node : tank.path){
+                    for (Point node : tank.path){
                         shapeRenderer.rect(node.getX()-width/2,node.getY()-width/2,width,width);
 
                     }
                 }
+
+                shapeRenderer.line(tank.getX(),tank.getY(), tank.getX()+ tank.getDirection().x,tank.getY() +tank.getDirection().y);
             }
         }
 
@@ -221,7 +219,7 @@ public class PlayScreen implements Screen, GestureDetector.GestureListener, Inpu
         Vector3 touchPos = new Vector3(x,y,0);
         camera.unproject(touchPos);
         touchPos.sub(previous).scl(1/100f);
-        System.out.println(touchPos + " " + camera.position);
+        //System.out.println(touchPos + " " + camera.position);
         camera.position.set(touchPos.add(camera.position));
         return true;
     }
@@ -233,7 +231,7 @@ public class PlayScreen implements Screen, GestureDetector.GestureListener, Inpu
 
     @Override
     public boolean zoom(float initialDistance, float distance) {
-        System.out.println(distance);
+       // System.out.println(distance);
         camera.zoom+=(initialDistance-distance)/1000f;
         return true;
     }

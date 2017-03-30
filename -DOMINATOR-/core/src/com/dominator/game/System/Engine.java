@@ -2,6 +2,7 @@ package com.dominator.game.System;
 
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.physics.box2d.Box2D;
 import com.badlogic.gdx.physics.box2d.Box2DDebugRenderer;
 import com.badlogic.gdx.physics.box2d.World;
 
@@ -13,6 +14,7 @@ public class Engine {
     private World world;
 
     public Engine() {
+        Box2D.init();
         this.world = new World(new Vector2(0,0),false);
     }
 

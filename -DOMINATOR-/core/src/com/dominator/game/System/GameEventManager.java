@@ -16,6 +16,7 @@ import com.dominator.game.Quadtree.QuadTree;
 
 /**
  * Created by Choujaa Wassil on 22/03/2017.
+ *
  */
 public class GameEventManager {
 

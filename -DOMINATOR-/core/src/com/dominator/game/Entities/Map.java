@@ -24,7 +24,7 @@ public class Map {
 
     public QuadTree quadTree;
 
-    public static final int step = 5;
+    public static final int step = 10;
     public static final int scale = 100;   // 1 m = 100 px
 
     private JsonToMap loader;
@@ -43,8 +43,8 @@ public class Map {
 
         // 2. Create a FixtureDef, as usual.
         FixtureDef fd = new FixtureDef();
-        fd.density = 1;
-        fd.friction = 0.5f;
+        fd.density = 1f;
+        fd.friction = 0f;
         fd.restitution = 0.3f;
 
         // 3. Create a Body, as usual.

@@ -1,6 +1,7 @@
 package com.dominator.game.Module;
 
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.utils.Array;
 import com.dominator.game.Quadtree.*;
 
 
@@ -16,9 +17,9 @@ public class Pathfinder {
     QuadTree quadTree;
     private float maxSearchDistance = 1000000f;
     private final List<AstarNodes> vectorPool = new ArrayList<AstarNodes>();
-    private ArrayList<AstarNodes> closed = new ArrayList<AstarNodes>();
+    private Array<AstarNodes> closed = new Array<AstarNodes>();
     private SortedList open = new SortedList();
-    private ArrayList<AstarNodes> path = new ArrayList<AstarNodes>();
+    private ArrayList<Point> path = new ArrayList<Point>();
 
     public Pathfinder(QuadTree tree) {
         this.quadTree = tree;
@@ -139,23 +140,24 @@ public class Pathfinder {
         return matrix;
     }*/
 
-    public ArrayList<AstarNodes> AstarPathFrom(float x, float y, float targetX, float targetY) {
+    public ArrayList<Point> AstarPathFrom(float x, float y, float targetX, float targetY) {
 
         Node beginNode = (Node) quadTree.get(x, y, null);
         Node targetNode = (Node) quadTree.get(targetX, targetY, null);
 
         if (beginNode == null || targetNode == null) {
-            System.out.println("null sorry");
             return null;
         }
+
+
 
         closed.clear();
         open.clear();
         path.clear();
 
-        open.add(getNewVec().set(beginNode, null, targetNode));
+        open.add(getNewVec().set(x,y, beginNode.getNeighbours(), null, targetNode));
 
-        while (open.size() != 0 && open.first().node != targetNode) {
+        while (open.size() != 0 && (open.first().getX() != targetNode.getCenterX() || open.first().getY() != targetNode.getCenterY())) {
 
             AstarNodes current = open.first();
             open.remove(current);
@@ -169,43 +171,64 @@ public class Pathfinder {
                 Node neighbour = neighbours[i];
                 // if neighbour in closed => continue
                 boolean found = false;
-                for (AstarNodes aClosed : closed) {if (aClosed.node == neighbour) {found = true;}}
-                if (found) {continue;}
+                for (AstarNodes node : closed) {
+                    if(node.x == neighbour.getCenterX() && node.y == neighbour.getCenterY()){
+                        found = true;
+                    }
+                }
+                if (found){
+                    continue;
+                }
                 // now find his corresponding AstarNode in the open
                 AstarNodes astarNeighbour = open.find(neighbour);
 
                 if(astarNeighbour == null){
-                    open.add(getNewVec().set(neighbour,current,targetNode));
+                    open.add(getNewVec().set(neighbour.getCenterX(), neighbour.getCenterY(),neighbour.getNeighbours() , current,targetNode));
                 }
                 else {
                     // comparaison
                     float cost = current.cost + current.dist(astarNeighbour);
                     if(cost<=astarNeighbour.cost){
-                        astarNeighbour.set(neighbour,current,targetNode);
+                        astarNeighbour.set(neighbour.getCenterX(), neighbour.getCenterY(), neighbours,current,targetNode);
                     }
                 }
             }
         }
 
 
-        AstarNodes last = open.first();
+        AstarNodes last = null;
+
+        if(open.size() != 0){
+            last = getNewVec().set(targetX,targetY,null,open.first().parent,null);
+
+        } else {
+            last = getNewVec().set(targetX,targetY,null,closed.get(closed.size-1).parent,null);
+
+        }
+
+        path.add(new Point(last.getX(),last.getY()));
+
+
 
         while (last.parent != null){
-            path.add(last);
             last = last.parent;
-            System.out.println(last.getX()+" "+last.getY());
+            path.add(new Point(last.getX(),last.getY()));
         }
 
         Collections.reverse(path);
 
-        return (ArrayList<AstarNodes>) path.clone();
+        path.remove(0);
+
+        return (ArrayList<Point>) path.clone();
         // contruct path from current;
     }
     /**
      * A simple sorted list
      *
-     * @author kevin => Thanks Kevin :D
+     * @author kevin => Thanks Kevin :D from Wassil
+     *
      */
+
     private class SortedList {
         /** The list of elements */
         private ArrayList<AstarNodes> list = new ArrayList<AstarNodes>();
@@ -272,7 +295,7 @@ public class Pathfinder {
             Iterator<AstarNodes> it = list.iterator();
             while (it.hasNext()){
                 AstarNodes node = it.next();
-                if (node.node == search){
+                if (node.getX() == search.getCenterX() && node.getY() == search.getCenterY()){
                     return node;
                 }
             }
@@ -292,17 +315,22 @@ public class Pathfinder {
         private boolean option = true;
         private float cost;
         private float estimated;
-        private Node node;
         private AstarNodes parent;
+        private float x;
+        private float y;
+        private Node[] neighbours;
 
         public AstarNodes() {
             super();
         }
 
-        public AstarNodes set(Node node, AstarNodes parent, Node target) {
-            this.node = node;
-            this.cost = (parent==null) ? 0 : node.dist(parent.node) + parent.cost; // this cost == current Cost + dist between current and this one
-            this.estimated = node.dist(target)*1.1f;
+        public AstarNodes set(float x, float y, Node[] neighbours, AstarNodes parent, Node target) {
+
+            this.x = x;
+            this.y = y;
+            this.neighbours = neighbours;
+            this.cost = (parent==null) ? 0 : dist(parent) + parent.cost; // this cost == current Cost + dist between current and this one
+            this.estimated = (target==null)? 10000 : dist(target.getCenterX(), target.getCenterY())*1.1f; // heuristic + 1.1f to converge faster to the solution
             this.parent = parent;
 
             if (parent!=null && parent.parent!=null && option){
@@ -312,7 +340,7 @@ public class Pathfinder {
                 float parentParentCost =  parent.parent.cost + parent.parent.dist(this);
 
                 if (los){
-                   // System.out.println(" ligne of sight between:\n"+parent.parent.getX()+" "+parent.parent.getY()+","+getX()+" "+getY());
+                    // System.out.println(" ligne of sight between:\n"+parent.parent.getX()+" "+parent.parent.getY()+","+getX()+" "+getY());
 
                     if(parentParentCost<=cost){
                         this.parent = parent.parent;
@@ -321,6 +349,10 @@ public class Pathfinder {
                 }
             }
             return this;
+        }
+
+        private float dist(float centerX, float centerY) {
+            return Math.abs(centerX-x)+ Math.abs(centerY-y);
         }
 
 
@@ -338,19 +370,20 @@ public class Pathfinder {
         }
 
         public Node[] getNeighbours(){
-            return node.getNeighbours();
+            return neighbours;
         }
 
-        public float dist(AstarNodes astarNeighbour) {
-            return astarNeighbour.node.dist(node);
+        public float dist(AstarNodes targetNode) {
+            // Manhattan dist choosen
+            return Math.abs(targetNode.x-x)+ Math.abs(targetNode.y-y);
         }
 
         public float getX(){
-            return node.getCenterX();
+            return x;
         }
 
         public float getY(){
-            return node.getCenterY();
+            return y;
         }
 
     }

@@ -10,4 +10,18 @@ public class Point {
         x = p0;
         y = p1;
     }
+
+    public float getX() {
+        return x;
+    }
+
+    public float getY() {
+        return y;
+    }
+
+    public Point set(float x, float y) {
+        this.x = x;
+        this.y = y;
+        return this;
+    }
 }
