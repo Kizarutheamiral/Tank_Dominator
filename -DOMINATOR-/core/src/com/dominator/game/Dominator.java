@@ -22,7 +22,6 @@ public class Dominator extends Game {
 	}
 
 	private void initInstances() {
-        GameStateManager.instance().setDominator(this);
-
+        GameStateManager.instance().setup(this);
 	}
 }

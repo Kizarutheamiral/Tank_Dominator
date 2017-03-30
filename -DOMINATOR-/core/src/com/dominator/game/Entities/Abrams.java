@@ -3,6 +3,8 @@ package com.dominator.game.Entities;
 import com.badlogic.gdx.maps.*;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.*;
+import com.dominator.game.System.GameState;
+import com.dominator.game.System.GameStateManager;
 
 /**
  * Created by Choujaa Wassil on 21/02/2017.
@@ -18,29 +20,49 @@ public class Abrams extends Tank{
 
     public Abrams(float x, float y, World world, Map map) {
         super(100f,10f , map);
+
         BodyDef bd = new BodyDef();
         bd.position.set(x, y);
         bd.type = BodyDef.BodyType.DynamicBody;
-        // 2. Create a Shape, as usual.
-        FixtureDef fd = new FixtureDef();
-        PolygonShape shape = new PolygonShape();
-        float Box2Dheigth =10;
-        float BOX2Dwidth = 10;
-        shape.setAsBox(BOX2Dwidth,Box2Dheigth);
-        setWidth(BOX2Dwidth*2);
-        setHeigth(Box2Dheigth*2);
-        // 3. define parameters
-        fd.density = 0.25f;
-        fd.friction = 0.5f;
-        fd.restitution = 0.3f;
-        fd.shape = shape;
+
+
+
+        JsonToBody.RigidBodyModel model = GameStateManager.instance().Abrams;
+
+        width = model.maxX;
+        heigth = model.maxX;
         // 4. init
         body = world.createBody(bd);
-        body.createFixture(fd);
+        for (FixtureDef fd : model.fixtures) {
+            // 2. Create a Shape, as usual.
+            // 3. define parameters
+            System.out.println(fd);
+
+            fd.density = 0.1f;
+            fd.friction = 0.5f;
+            fd.restitution = 0.3f;
+
+            body.createFixture(fd);
+        }
+
+
+        model = GameStateManager.instance().AbramsTourelle;
+        for (FixtureDef fd : model.fixtures) {
+            // 2. Create a Shape, as usual.
+            // 3. define parameters
+            System.out.println(fd);
+
+            fd.density = 0.1f;
+            fd.friction = 0.5f;
+            fd.restitution = 0.3f;
+
+            body.createFixture(fd);
+        }
+
+
         body.getPosition().set(new Vector2(x,y));
 
         setupFriction();
-
     }
 
 
@@ -57,19 +79,20 @@ public class Abrams extends Tank{
 
     @Override
     public boolean rotate() {
+
         Vector2 orientation = body.getTransform().getOrientation().cpy();
         Vector2 direction = getDirection();
-        
-        float delta = direction.angle() - orientation.angle();
+
+        float orientationAngle = (direction.angle() - orientation.angle() < -180f) ? 360f - orientation.angle() : orientation.angle();
+
+        float delta = direction.angle() - orientationAngle;
 
         if(delta>=180f){
             delta-=360f;
         }
         body.applyAngularImpulse(delta*rotationSpeed,true);
 
-        System.out.println(delta + " orientation "+ orientation.angle()+" direc"+direction.angle());
-
-        return  Math.abs(delta)<20;
+        return  Math.abs(delta)<10;
     }
 
     @Override

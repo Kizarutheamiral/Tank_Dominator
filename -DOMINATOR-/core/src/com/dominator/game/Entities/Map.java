@@ -3,10 +3,13 @@ package com.dominator.game.Entities;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.physics.box2d.*;
 import com.dominator.game.Quadtree.*;
+import com.dominator.game.System.GameStateManager;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
+
+import static com.dominator.game.CONSTANT.step;
 
 /**
  * Created by Choujaa Wassil on 22/02/2017.
@@ -24,14 +27,12 @@ public class Map {
 
     public QuadTree quadTree;
 
-    public static final int step = 10;
-    public static final int scale = 100;   // 1 m = 100 px
 
-    private JsonToMap loader;
+    private JsonToBody loader;
 
 
     public Map() {
-        loader = new JsonToMap(Gdx.files.internal("map.json"));
+
     }
 
     public Map loadMap(World world){
@@ -42,17 +43,21 @@ public class Map {
         bd.type = BodyDef.BodyType.StaticBody;
 
         // 2. Create a FixtureDef, as usual.
-        FixtureDef fd = new FixtureDef();
-        fd.density = 1f;
-        fd.friction = 0f;
-        fd.restitution = 0.3f;
+
 
         // 3. Create a Body, as usual.
         Body map = world.createBody(bd);
 
         // 4. Create the body fixture automatically by using the loader and return
         // map is 100x100
-        JsonToMap.RigidBodyModel model =  loader.attachFixture(map, "Name", fd, scale);
+        JsonToBody.RigidBodyModel model = GameStateManager.instance().Map;
+
+        for (FixtureDef fd : model.fixtures) {
+            fd.density = 1f;
+            fd.friction = 0f;
+            fd.restitution = 0.3f;
+            map.createFixture(fd);
+        }
 
         // 5. Now get all the circles and polygons of the map and generate the graph
 
@@ -82,22 +87,22 @@ public class Map {
 
     }
 
-   private void generateQuadtree(JsonToMap.RigidBodyModel model){
+   private void generateQuadtree(JsonToBody.RigidBodyModel model){
 
         float max = (model.maxX > model.maxY)? model.maxX : model.maxY;
 
         quadTree = new QuadTree(0,0,max);
 
-        for (JsonToMap.PolygonModel polygon : model.polygons) {
+        for (JsonToBody.PolygonModel polygon : model.polygons) {
             quadTree.subdivide(polygon,quadTree.getRootNode());
         }
 
-        for (JsonToMap.CircleModel circle:model.circles) {
+        for (JsonToBody.CircleModel circle:model.circles) {
             quadTree.subdivide(circle,quadTree.getRootNode());
         }
     }
 /*
-    private HashMap<Integer,LinkedList<Integer>> convertToGraph(JsonToMap.RigidBodyModel model, World world) {
+    private HashMap<Integer,LinkedList<Integer>> convertToGraph(JsonToBody.RigidBodyModel model, World world) {
 
         // The RigidiModel is scaled in our world coordinate system/scale
         HashMap<Integer, LinkedList<Integer>> graphTmp = new HashMap<Integer, LinkedList<Integer>>();
@@ -128,7 +133,7 @@ public class Map {
 
         for (float x = 0; x < maxX/step; x++) {
             for (float y = 0; y < maxY/step; y++) {
-                for (JsonToMap.PolygonModel polygon : model.polygons) {
+                for (JsonToBody.PolygonModel polygon : model.polygons) {
                     if(polygon.contain(x*step,y*step)){
                         result = false;
                     }
@@ -137,7 +142,7 @@ public class Map {
                     result = true;
                     continue;
                 }
-                for (JsonToMap.CircleModel circle:model.circles) {
+                for (JsonToBody.CircleModel circle:model.circles) {
                     if(circle.contain(x*step,y*step)){
                         result = false;
                     }

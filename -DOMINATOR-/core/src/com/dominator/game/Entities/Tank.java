@@ -13,7 +13,6 @@ import com.sun.jnlp.IntegrationServiceImpl;
 
 import java.util.ArrayList;
 
-import static com.dominator.game.Entities.Map.scale;
 
 /**
  * Created by Choujaa Wassil on 21/02/2017.

@@ -2,43 +2,49 @@ package com.dominator.game.Entities;
 
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.physics.box2d.Body;
-import com.badlogic.gdx.physics.box2d.CircleShape;
-import com.badlogic.gdx.physics.box2d.FixtureDef;
-import com.badlogic.gdx.physics.box2d.PolygonShape;
+import com.badlogic.gdx.physics.box2d.*;
+import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.JsonReader;
 import com.badlogic.gdx.utils.JsonValue;
 import com.dominator.game.Quadtree.Node;
 import java.util.*;
 import java.util.List;
-import static com.dominator.game.Entities.Map.scale;
+
+import static com.dominator.game.CONSTANT.scale;
 
 
 /**
  * Created by Choujaa Wassil on 22/02/2017.
  *
  */
-public class JsonToMap {
-    private final JsonToMap.Model model;
+public class JsonToBody {
 
+    public final Model model = new Model();
     // Reusable stuff
     private final List<Vector2> vectorPool = new ArrayList<Vector2>();
-    private final PolygonShape polygonShape = new PolygonShape();
-    private final CircleShape circleShape = new CircleShape();
     private final Vector2 vec = new Vector2();
 
     // -------------------------------------------------------------------------
     // Ctors
     // -------------------------------------------------------------------------
 
-    JsonToMap(FileHandle file) {
+    public JsonToBody(FileHandle file, float scale) {
         if (file == null) throw new NullPointerException("file is null");
-        model = readJson(file.readString());
+        readJson(file.readString(), scale);
     }
 
-    JsonToMap(String str) {
+    public JsonToBody(String str, float scale) {
         if (str == null) throw new NullPointerException("str is null");
-        model = readJson(str);
+        readJson(str, scale);
+    }
+
+    public JsonToBody() {
+
+    }
+
+    public void loadFromJSon(FileHandle file, int scale){
+        if (file == null) throw new NullPointerException("file is null");
+        readJson(file.readString(), scale);
     }
 
     // -------------------------------------------------------------------------
@@ -56,7 +62,7 @@ public class JsonToMap {
      * place this reference point carefully to let you place your body in your
      * world easily with its BodyDef.position point. Note that to draw an image
      * at the position of your body, you will need to know this reference point
-     * (see {@link #getOrigin(java.lang.String, float)}.
+     * (see {@link #getOrigin(String, float)}.
      * <br/><br/>
      *
      * Also, saved shapes are normalized. As shown in the tool, the width of
@@ -69,9 +75,16 @@ public class JsonToMap {
      * @param fd The fixture parameters to apply to the created body fixture.
      * @param scale The desired scale of the body. The default width is 1.
      */
-    public JsonToMap.RigidBodyModel attachFixture(Body body, String name, FixtureDef fd, float scale) {
+    public RigidBodyModel attachFixture( String name, float scale) {
 
-        JsonToMap.RigidBodyModel rbModel = model.rigidBodies.get(name);
+        Array<FixtureDef> list = new Array<FixtureDef>();
+
+        RigidBodyModel rbModel = model.rigidBodies.get(name);
+
+        if (rbModel==null){
+            return null;
+        }
+
         rbModel.maxX = 0f;
         rbModel.maxY = 0f;
 
@@ -79,8 +92,12 @@ public class JsonToMap {
 
         Vector2 origin = vec.set(rbModel.origin).scl(scale);
 
+        FixtureDef fd;
+
         for (int i=0, n=rbModel.polygons.size(); i<n; i++) {
-            JsonToMap.PolygonModel polygon = rbModel.polygons.get(i);
+            fd = new FixtureDef();
+
+            PolygonModel polygon = rbModel.polygons.get(i);
             Vector2[] vertices = polygon.buffer;
 
             for (int ii=0, nn=vertices.length; ii<nn; ii++) {
@@ -95,10 +112,11 @@ public class JsonToMap {
                 }
             }
 
-            polygonShape.set(vertices);
-            fd.shape = polygonShape;
-            body.createFixture(fd);
 
+            PolygonShape s  = new PolygonShape();
+            s.set(vertices);
+            fd.shape = s;
+            list.add(fd);
             for (int ii=0, nn=vertices.length; ii<nn; ii++) {
                 free(vertices[ii]);
             }
@@ -108,7 +126,9 @@ public class JsonToMap {
         float dstY ;
 
         for (int i=0, n=rbModel.circles.size(); i<n; i++) {
-            JsonToMap.CircleModel circle = rbModel.circles.get(i);
+             fd = new FixtureDef();
+
+            CircleModel circle = rbModel.circles.get(i);
             Vector2 center = newVec().set(circle.center).scl(scale);
             float radius = circle.radius * scale;
             dstX = center.x + radius;
@@ -121,13 +141,16 @@ public class JsonToMap {
                 rbModel.maxY=dstY;
             }
 
-            circleShape.setPosition(center);
-            circleShape.setRadius(radius);
-            fd.shape = circleShape;
-            body.createFixture(fd);
 
+            CircleShape s  = new CircleShape();
+            s.setPosition(center);
+            s.setRadius(radius);
+            fd.shape = s;
+            list.add(fd);
             free(center);
         }
+
+        rbModel.fixtures.addAll(list);
 
         return rbModel;
     }
@@ -136,7 +159,7 @@ public class JsonToMap {
      * Gets the image path attached to the given name.
      */
     public String getImagePath(String name) {
-        JsonToMap.RigidBodyModel rbModel = model.rigidBodies.get(name);
+        RigidBodyModel rbModel = model.rigidBodies.get(name);
         if (rbModel == null) throw new RuntimeException("Name '" + name + "' was not found.");
 
         return rbModel.imagePath;
@@ -149,7 +172,7 @@ public class JsonToMap {
      * copy it if you need it for later use.
      */
     public Vector2 getOrigin(String name, float scale) {
-        JsonToMap.RigidBodyModel rbModel = model.rigidBodies.get(name);
+        RigidBodyModel rbModel = model.rigidBodies.get(name);
         if (rbModel == null) throw new RuntimeException("Name '" + name + "' was not found.");
 
         return vec.set(rbModel.origin).scl(scale).cpy();
@@ -160,28 +183,30 @@ public class JsonToMap {
      * this loader and modify it. Be aware that any modification is permanent
      * and that you should really know what you are doing.
      */
-    public JsonToMap.Model getInternalModel() {
+    public Model getInternalModel() {
         return model;
     }
 
     // -------------------------------------------------------------------------
-    // Json Models
+    // Json Models All the Json Object are stored in this map
     // -------------------------------------------------------------------------
 
     public static class Model {
-        public final java.util.Map<String, JsonToMap.RigidBodyModel> rigidBodies = new HashMap<String, JsonToMap.RigidBodyModel>();
+        public final java.util.Map<String, RigidBodyModel> rigidBodies = new HashMap<String, RigidBodyModel>();
     }
 
     public static class RigidBodyModel {
+
         Float maxX;
         Float maxY;
         public String name;
         public String imagePath;
         public final Vector2 origin = new Vector2();
-        public final List<JsonToMap.PolygonModel> polygons = new ArrayList<JsonToMap.PolygonModel>();
-        public final List<JsonToMap.CircleModel> circles = new ArrayList<JsonToMap.CircleModel>();
-    }
+        public final List<PolygonModel> polygons = new ArrayList<PolygonModel>();
+        public final List<CircleModel> circles = new ArrayList<CircleModel>();
+        public final Array<FixtureDef> fixtures = new Array<FixtureDef>();
 
+    }
 
     public interface ShapeModel{
         boolean contain(float x, float y);
@@ -297,25 +322,25 @@ public class JsonToMap {
     // Json reading process
     // -------------------------------------------------------------------------
 
-    private JsonToMap.Model readJson(String str) {
-        JsonToMap.Model m = new JsonToMap.Model();
+    private Model readJson(String str, float scale) {
+
         JsonValue rootElem = new JsonReader().parse(str);
+
         JsonValue bodiesElems =  rootElem.get("rigidBodies");
 
-        for (int i=0; i<bodiesElems.size; i++) {
-            JsonValue bodyElem =  bodiesElems.get(i);
-            JsonToMap.RigidBodyModel rbModel = readRigidBody(bodyElem);
-            m.rigidBodies.put(rbModel.name, rbModel);
-        }
+        JsonValue bodyElem =  bodiesElems.get(0);
+        RigidBodyModel rbModel = readRigidBody(bodyElem);
+        model.rigidBodies.put(rbModel.name, rbModel);
 
-        return m;
+        attachFixture(rbModel.name, scale);
+
+        return model;
     }
 
-    private JsonToMap.RigidBodyModel readRigidBody(JsonValue bodyElem) {
-        JsonToMap.RigidBodyModel rbModel = new JsonToMap.RigidBodyModel();
+    private RigidBodyModel readRigidBody(JsonValue bodyElem) {
+        RigidBodyModel rbModel = new RigidBodyModel();
         rbModel.name =  bodyElem.getString("name");
         rbModel.imagePath =  bodyElem.getString("imagePath");
-
         JsonValue originElem =  bodyElem.get("origin");
         rbModel.origin.x = Float.valueOf(originElem.getString("x")) ;
         rbModel.origin.y = Float.valueOf(originElem.getString("y"));
@@ -329,7 +354,7 @@ public class JsonToMap {
         float minY=0;
         float minX=0;
         for (int i=0; i<polygonsElem.size; i++) {
-            JsonToMap.PolygonModel polygon = new JsonToMap.PolygonModel();
+            PolygonModel polygon = new PolygonModel();
             rbModel.polygons.add(polygon);
 
             JsonValue verticesElem =  polygonsElem.get(i);
@@ -363,7 +388,7 @@ public class JsonToMap {
         JsonValue circlesElem =  bodyElem.get("circles");
 
         for (int i=0; i<circlesElem.size; i++) {
-            JsonToMap.CircleModel circle = new JsonToMap.CircleModel();
+            CircleModel circle = new CircleModel();
             rbModel.circles.add(circle);
 
             JsonValue circleElem =  circlesElem.get(i);

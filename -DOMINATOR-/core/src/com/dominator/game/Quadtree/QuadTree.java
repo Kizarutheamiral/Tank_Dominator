@@ -1,11 +1,13 @@
 package com.dominator.game.Quadtree;
 
 
-import com.dominator.game.Entities.JsonToMap;
+import com.dominator.game.Entities.JsonToBody;
 import com.dominator.game.Entities.Map;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static com.dominator.game.CONSTANT.step;
 
 /**
  * Datastructure: A point Quad Tree for representing 2D data. Each
@@ -42,7 +44,7 @@ public class QuadTree {
         return this.root_;
     }
 
-    public void subdivide(JsonToMap.ShapeModel obstacle, Node parent){
+    public void subdivide(JsonToBody.ShapeModel obstacle, Node parent){
         // no check if outside the bound of the three
         switch (parent.getNodeType()) {
             case LEAF_EMPTY:
@@ -63,7 +65,7 @@ public class QuadTree {
     /**
      * Return the LEAF_EMPTY nodes Intersected by the obstacles within the parent bound
      */
-    private Node[] getNodeIntersected(final JsonToMap.ShapeModel obstacle, Node parent) {
+    private Node[] getNodeIntersected(final JsonToBody.ShapeModel obstacle, Node parent) {
         final List<Node> arr = new ArrayList<Node>();
 
         this.navigate(parent, new Func() {
@@ -84,13 +86,13 @@ public class QuadTree {
      * @param obstacle
      * @private
      */
-    private void split(JsonToMap.ShapeModel obstacle, Node parent) {
+    private void split(JsonToBody.ShapeModel obstacle, Node parent) {
 
         float w = parent.getW() / 2;
         float x = parent.getCenterX() - w;
         float y = parent.getCenterY() - w;
 
-        if(w > Map.step){
+        if(w > step){
             parent.setNodeType(NodeType.POINTER);
 
             parent.setSw(new Node(x+w/2, y+w/2, w, parent, NodeType.LEAF_EMPTY));

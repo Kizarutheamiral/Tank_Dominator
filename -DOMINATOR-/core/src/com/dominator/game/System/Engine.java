@@ -14,7 +14,6 @@ public class Engine {
     private World world;
 
     public Engine() {
-        Box2D.init();
         this.world = new World(new Vector2(0,0),false);
     }
 
