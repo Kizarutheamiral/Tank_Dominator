@@ -3,6 +3,7 @@ package com.dominator.game.Entities;
 import com.badlogic.gdx.maps.*;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.*;
+import com.badlogic.gdx.physics.box2d.joints.RevoluteJointDef;
 import com.dominator.game.System.GameState;
 import com.dominator.game.System.GameStateManager;
 
@@ -16,23 +17,26 @@ import com.dominator.game.System.GameStateManager;
 public class Abrams extends Tank{
     private float width;
     private float heigth;
-
-
+    private Body tourelle;
+    private int tourelleSpeed = 12;
     public Abrams(float x, float y, World world, Map map) {
         super(100f,10f , map);
 
+        JsonToBody.RigidBodyModel model = GameStateManager.instance().Abrams;
+
+
         BodyDef bd = new BodyDef();
+
+        width = model.maxX;
+        heigth = model.maxX;
+
         bd.position.set(x, y);
         bd.type = BodyDef.BodyType.DynamicBody;
 
 
-
-        JsonToBody.RigidBodyModel model = GameStateManager.instance().Abrams;
-
-        width = model.maxX;
-        heigth = model.maxX;
         // 4. init
         body = world.createBody(bd);
+
         for (FixtureDef fd : model.fixtures) {
             // 2. Create a Shape, as usual.
             // 3. define parameters
@@ -45,9 +49,14 @@ public class Abrams extends Tank{
             body.createFixture(fd);
         }
 
+        BodyDef td = new BodyDef();
 
-        model = GameStateManager.instance().AbramsTourelle;
-        for (FixtureDef fd : model.fixtures) {
+        td.position.set(x, y);
+        td.type = BodyDef.BodyType.DynamicBody;
+
+        tourelle = world.createBody(td);
+
+        for (FixtureDef fd : GameStateManager.instance().AbramsTourelle.fixtures) {
             // 2. Create a Shape, as usual.
             // 3. define parameters
             System.out.println(fd);
@@ -56,11 +65,22 @@ public class Abrams extends Tank{
             fd.friction = 0.5f;
             fd.restitution = 0.3f;
 
-            body.createFixture(fd);
+            tourelle.createFixture(fd);
         }
 
+        RevoluteJointDef revolute = new RevoluteJointDef();
 
-        body.getPosition().set(new Vector2(x,y));
+        revolute.bodyA=body;
+        revolute.bodyB=tourelle;
+        revolute.collideConnected=false;
+        revolute.localAnchorA.set(0,0);
+        revolute.localAnchorB.set(0,0);
+
+        world.createJoint(revolute);
+
+        tourelle.setAngularDamping(20f);
+
+        // body.getPosition().set(new Vector2(x,y));
 
         setupFriction();
     }
@@ -80,7 +100,7 @@ public class Abrams extends Tank{
     @Override
     public boolean rotate() {
 
-        Vector2 orientation = body.getTransform().getOrientation().cpy();
+        Vector2 orientation = tourelle.getTransform().getOrientation().cpy();
         Vector2 direction = getDirection();
 
         float orientationAngle = (direction.angle() - orientation.angle() < -180f) ? 360f - orientation.angle() : orientation.angle();
@@ -90,6 +110,19 @@ public class Abrams extends Tank{
         if(delta>=180f){
             delta-=360f;
         }
+
+        tourelle.applyAngularImpulse(delta*tourelleSpeed,true);
+
+        orientation = body.getTransform().getOrientation().cpy();
+
+        orientationAngle = (direction.angle() - orientation.angle() < -180f) ? 360f - orientation.angle() : orientation.angle();
+
+        delta = direction.angle() - orientationAngle;
+
+        if(delta>=180f){
+            delta-=360f;
+        }
+
         body.applyAngularImpulse(delta*rotationSpeed,true);
 
         return  Math.abs(delta)<10;

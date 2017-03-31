@@ -36,7 +36,7 @@ public strictfp abstract class Tank implements Dynamic_Bodies{
 
     protected void setupFriction(){
         body.setAngularDamping(10f);
-        body.setLinearDamping(1f);
+        body.setLinearDamping(2f);
     }
 
     /// Movement
