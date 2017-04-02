@@ -11,20 +11,13 @@ import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.box2d.Box2DDebugRenderer;
-import com.badlogic.gdx.physics.box2d.World;
-import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.scenes.scene2d.ui.Table;
-import com.badlogic.gdx.utils.viewport.ExtendViewport;
-import com.badlogic.gdx.utils.viewport.StretchViewport;
-import com.dominator.game.Entities.Abrams;
-import com.dominator.game.Entities.Map;
 import com.dominator.game.Entities.Tank;
 import com.dominator.game.Module.Pathfinder;
 import com.dominator.game.Quadtree.*;
-import com.dominator.game.System.Engine;
 import com.dominator.game.System.GameEventManager;
-import com.dominator.game.System.GameState;
 import com.dominator.game.System.GameStateManager;
+import static com.badlogic.gdx.math.MathUtils.clamp;
+import static com.dominator.game.CONSTANT.*;
 
 /**
  * Created by Choujaa Wassil on 24/03/2017.
@@ -32,18 +25,24 @@ import com.dominator.game.System.GameStateManager;
  */
 public class PlayScreen implements Screen, GestureDetector.GestureListener, InputProcessor{
 
-    SpriteBatch batch;
-    Texture img;
-    Box2DDebugRenderer render;
+    private SpriteBatch batch;
+    private Box2DDebugRenderer render;
     public OrthographicCamera camera;
     public Pathfinder finder;
     private  ShapeRenderer shapeRenderer;
     private boolean debug = true;
     private Texture texture;
-    private int X_UNIT = 200;
-    private int Y_UNIT = 200;
-    private Vector3 previousCamPosition;
+    private boolean DoubleCount=false;
     private Vector3 previous = new Vector3();
+
+    /// Graphics objects
+
+
+    private final Rectangle selectionRectangle = new Rectangle();
+    private boolean dragging = false;
+    private Vector3 DragContextBegin = new Vector3();
+    private Vector3 DragContextCurrent = new Vector3();
+
 
     @Override
     public void show() {
@@ -56,13 +55,9 @@ public class PlayScreen implements Screen, GestureDetector.GestureListener, Inpu
         render = new Box2DDebugRenderer();
         shapeRenderer = new ShapeRenderer();
 
-        // texture = new Texture(Gdx.files.internal("font.png"));
-
         float w = Gdx.graphics.getWidth();
         float h = Gdx.graphics.getHeight();
 
-        // Constructs a new OrthographicCamera, using the given viewport width and height
-        // Height is multiplied by aspect ratio.
         camera = new OrthographicCamera(X_UNIT, Y_UNIT * (h / w));
         camera.position.set(camera.viewportWidth / 2f, camera.viewportHeight / 2f, 0);
         batch.getProjectionMatrix().set(camera.combined);
@@ -71,7 +66,6 @@ public class PlayScreen implements Screen, GestureDetector.GestureListener, Inpu
         im.addProcessor(new GestureDetector(this));
         im.addProcessor(this);
         Gdx.input.setInputProcessor(im);
-
     }
 
     @Override
@@ -102,25 +96,32 @@ public class PlayScreen implements Screen, GestureDetector.GestureListener, Inpu
                     shapeRenderer.rect(node.getCenterX()-node.getW()/2,node.getCenterY()-node.getW()/2,node.getW(),node.getW());
                 }
             },0,0,1800,1800);
-
-            for (Tank tank: GameEventManager.instance().tanks) {
-                shapeRenderer.setColor(1, 1, 0, 1);
-
-                float width = 20f;
-
-                if(tank.path != null){
-                    for (Point node : tank.path){
-                        shapeRenderer.rect(node.getX()-width/2,node.getY()-width/2,width,width);
-
-                    }
-                }
-
-                shapeRenderer.line(tank.getX(),tank.getY(), tank.getX()+ tank.getDirection().x,tank.getY() +tank.getDirection().y);
-            }
         }
 
+        for (Tank tank: GameEventManager.instance().tanks) {
+            shapeRenderer.setColor(1, 1, 0, 1);
+
+            float width = step;
+
+            if(tank.pathTarget != null){
+                shapeRenderer.circle(tank.pathTarget.x,tank.pathTarget.y,width);
+
+            }
+
+            if (tank.isSelected()){
+                shapeRenderer.setColor(1, 0.5f, 0, 1);
+                shapeRenderer.circle(tank.getX(),tank.getY(),step);
+            }
 
 
+            shapeRenderer.line(tank.getX(),tank.getY(), tank.getX()+ tank.getDirection().x,tank.getY() +tank.getDirection().y);
+        }
+
+        shapeRenderer.setColor(1, 1, 0, 1);
+
+        if(dragging){
+            shapeRenderer.rect(selectionRectangle.x,selectionRectangle.y,selectionRectangle.width,selectionRectangle.height);
+        }
         shapeRenderer.end();
 
         batch.begin();
@@ -132,6 +133,10 @@ public class PlayScreen implements Screen, GestureDetector.GestureListener, Inpu
 
 
     private void camUpdate() {
+
+        DragContextCurrent.set(Gdx.input.getX(),Gdx.input.getY(),0);
+
+
         if (Gdx.input.isKeyPressed(Input.Keys.Z)) {
             camera.translate(new Vector2(0, 10));
 
@@ -158,6 +163,41 @@ public class PlayScreen implements Screen, GestureDetector.GestureListener, Inpu
             // Debug mode
             debug = !debug;
         }
+        if((((Gdx.input.isTouched(0) && !Gdx.input.isTouched(1) ) || Gdx.input.isButtonPressed(Input.Buttons.LEFT))) && ( DragContextCurrent.x != DragContextBegin.x && DragContextCurrent.y != DragContextBegin.y)  ){
+
+            dragging=true;
+
+            Vector3 begin =  camera.unproject(DragContextBegin.cpy());
+            Vector3 current =  camera.unproject(DragContextCurrent.cpy());
+
+            selectionRectangle.set(begin.x,begin.y,current.x-begin.x,current.y-begin.y);
+
+            float rectX = (selectionRectangle.width<0)? selectionRectangle.x+selectionRectangle.width:selectionRectangle.x;
+            float rectY = (selectionRectangle.height<0)? selectionRectangle.y+selectionRectangle.height:selectionRectangle.y;
+
+            selectionRectangle.set(rectX,rectY,Math.abs(selectionRectangle.width),Math.abs(selectionRectangle.height));
+
+            GameEventManager.instance().rectSelectionEvent(selectionRectangle.x,selectionRectangle.y,selectionRectangle.width,selectionRectangle.height);
+
+
+        }
+        if(  Gdx.input.isTouched(0) && Gdx.input.isTouched(1)) {
+
+            camera.translate((DragContextCurrent.x-DragContextBegin.x)/8f,-(DragContextCurrent.y-DragContextBegin.y)/8f);
+
+        }
+        if(Gdx.input.isButtonPressed(Input.Buttons.RIGHT)){
+
+            camera.translate((DragContextCurrent.x-DragContextBegin.x)/8f,-(DragContextCurrent.y-DragContextBegin.y)/8f);
+
+            dragging=false;
+        }
+        if( !( DragContextCurrent.x != DragContextBegin.x && DragContextCurrent.y != DragContextBegin.y) ){
+            dragging=false;
+        }
+
+
+
         camera.update();
     }
 
@@ -191,9 +231,6 @@ public class PlayScreen implements Screen, GestureDetector.GestureListener, Inpu
 
     @Override
     public boolean touchDown(float x, float y, int pointer, int button) {
-        previousCamPosition = camera.position;
-        previous = camera.unproject(previous.set(x,y,0));
-        GameEventManager.instance().touchEvent(previous.x,previous.y);
         return false;
     }
 
@@ -204,7 +241,6 @@ public class PlayScreen implements Screen, GestureDetector.GestureListener, Inpu
 
     @Override
     public boolean longPress(float x, float y) {
-        camera.zoom += 0.2;
 
         return true;
     }
@@ -216,24 +252,24 @@ public class PlayScreen implements Screen, GestureDetector.GestureListener, Inpu
 
     @Override
     public boolean pan(float x, float y, float deltaX, float deltaY) {
-        Vector3 touchPos = new Vector3(x,y,0);
-        camera.unproject(touchPos);
-        touchPos.sub(previous).scl(1/100f);
-        //System.out.println(touchPos + " " + camera.position);
-        camera.position.set(touchPos.add(camera.position));
+
+
+        return true;
+    }
+
+    @Override
+    public boolean zoom(float initialDistance, float distance) {
+        // System.out.println(distance);
+        if(!dragging){
+            clampCamera(camera.zoom + (initialDistance-distance)/10000f);
+        }
         return true;
     }
 
     @Override
     public boolean panStop(float x, float y, int pointer, int button) {
-        return false;
-    }
 
-    @Override
-    public boolean zoom(float initialDistance, float distance) {
-       // System.out.println(distance);
-        camera.zoom+=(initialDistance-distance)/1000f;
-        return true;
+        return false;
     }
 
     @Override
@@ -262,17 +298,27 @@ public class PlayScreen implements Screen, GestureDetector.GestureListener, Inpu
     }
 
     @Override
-    public boolean touchDown(int screenX, int screenY, int pointer, int button) {
+    public boolean touchDown(int x, int y, int pointer, int button) {
+        DragContextBegin.set(x,y,0);
+
         return false;
     }
 
     @Override
     public boolean touchUp(int screenX, int screenY, int pointer, int button) {
+
+        Vector3 unproject = camera.unproject(DragContextBegin.cpy());
+
+        GameEventManager.instance().touchEvent(unproject.x,unproject.y,!dragging);
+
+        selectionRectangle.set(0,0,0,0);
+
         return false;
     }
 
     @Override
-    public boolean touchDragged(int screenX, int screenY, int pointer) {
+    public boolean touchDragged(int x, int y, int pointer)
+    {
         return false;
     }
 
@@ -283,12 +329,17 @@ public class PlayScreen implements Screen, GestureDetector.GestureListener, Inpu
 
     @Override
     public boolean scrolled(int amount) {
+
         if(amount == 1){
-            camera.zoom += .2f;
+            clampCamera(camera.zoom + (float) step/20);
         }
         else if(amount == -1){
-            camera.zoom -= .2f;
+            clampCamera(camera.zoom - (float) step/20);
         }
         return true;
+    }
+
+    private void clampCamera(float value) {
+        camera.zoom = clamp(value, scale/100,scale/10);
     }
 }

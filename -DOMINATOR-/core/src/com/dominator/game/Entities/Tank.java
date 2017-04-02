@@ -1,9 +1,8 @@
 package com.dominator.game.Entities;
 
+import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.physics.box2d.Body;
-import com.badlogic.gdx.physics.box2d.Manifold;
-import com.badlogic.gdx.physics.box2d.Transform;
+import com.badlogic.gdx.physics.box2d.*;
 import com.dominator.game.Module.Intersection;
 import com.dominator.game.Module.Pathfinder;
 import com.dominator.game.Quadtree.Point;
@@ -12,6 +11,8 @@ import com.sun.jnlp.IntegrationServiceImpl;
 
 
 import java.util.ArrayList;
+
+import static com.dominator.game.CONSTANT.step;
 
 
 /**
@@ -26,8 +27,12 @@ public strictfp abstract class Tank implements Dynamic_Bodies{
     protected Body body;
     private Map map;
     public  Vector2 pathTarget;
-    private final Vector2 direction = new Vector2(1f,1f);
+    private final Vector2 direction = new Vector2(0f,0f);
     protected float rotationSpeed;
+    private boolean selected = false;
+    protected boolean follower = false;
+    private Tank leader = null;
+
     public Tank(float speed,float rotationSpeed, Map map) {
         this.map = map;
         this.speed = speed;
@@ -36,14 +41,15 @@ public strictfp abstract class Tank implements Dynamic_Bodies{
 
     protected void setupFriction(){
         body.setAngularDamping(10f);
-        body.setLinearDamping(2f);
+        body.setLinearDamping(5f);
+
     }
 
     /// Movement
-    public void move(boolean option){
+    public void move(){
         // if target is close to a given range just go straight else, use flowfield or A*
-        if(option){
-            follow_Flow_field();
+        if(follower){
+            follow(leader);
         } else {
             follow_Path();
         }
@@ -78,6 +84,7 @@ public strictfp abstract class Tank implements Dynamic_Bodies{
 
     public void follow_Path() {
 
+
         if (path != null){
             if (pathTarget == null){
                 if(path.size() != 0){
@@ -104,38 +111,72 @@ public strictfp abstract class Tank implements Dynamic_Bodies{
                 applySpeed(appliedSpeed);
             }
 
-            if (isArrivedAtTarget(pathTarget)){
+            if (isArrivedAtTarget(pathTarget,10f)){
                 pathTarget = null;
                 path.remove(0);
             }
         }
 
-        rotate();
-
-
-        applyFriction();
 
     }
 
-    private void applyFriction() {
-/*        Vector2 velocity = body.getLinearVelocity();
-        int len = Math.round(velocity.len());
-        if(!(len <=1)){
-            Vector2 vector2 = velocity.cpy().rotate(180f).scl(2f);
-            applySpeed(vector2);
-        }*/
+    private void follow(Tank leader) {
+
+        if(leader==null){
+            follower=false;
+            return;
+        }
+
+        if(path==null || path.size()==0){
+            if(leader.pathTarget!=null){
+                path=GameEventManager.instance().finder.AstarPathFrom(getX(),getY(),leader.pathTarget.x,leader.pathTarget.y);
+            } else {
+                path=GameEventManager.instance().finder.AstarPathFrom(getX(),getY(),leader.getX(),leader.getY());
+            }
+        }
+
+        if(path==null){
+            return;
+        }
+
+        pathTarget =  new Vector2(path.get(0).x, path.get(0).y);
+
+        direction.set(pathTarget.x-body.getPosition().x,pathTarget.y-body.getPosition().y).nor();
+
+        Vector2 currentSpeed = body.getLinearVelocity();
+
+        Vector2 appliedSpeed = new Vector2(body.getTransform().getOrientation().x*speed,body.getTransform().getOrientation().y*speed).sub(currentSpeed);
+
+        if(rotate()){
+            applySpeed(appliedSpeed);
+        }
+
+        if (isArrivedAtTarget(pathTarget,step)){
+            pathTarget = null;
+            path.remove(0);
+            if(leader.pathTarget==null && path.size()==0){
+                path=null;
+                follower=false;
+                leader=null;
+            }
+        }
     }
+
 
     private void applySpeed(Vector2 appliedSpeed) {
         body.applyLinearImpulse(appliedSpeed,body.getWorldCenter(),false);
     }
 
-    private boolean isArrivedAtTarget(Vector2 pathTarget) {
-        return Intersection.contain(pathTarget.x+10,pathTarget.y+10,getX(),getY(),getWidth(),getHeight()) ;
+    private boolean isArrivedAtTarget(Vector2 pathTarget, float range) {
+        return Intersection.CircleIntesectsCircle(pathTarget.x,pathTarget.y,range,getX(),getY(),range);
     }
 
     @Override
-    public void show() {}
+    public void show(Batch batch) {
+        if(selected){
+
+        }
+    }
 
     /// Attack
 
@@ -164,17 +205,58 @@ public strictfp abstract class Tank implements Dynamic_Bodies{
     public float getY() {
         return body.getPosition().y;
     }
-
     public abstract float getHeight();
     public abstract float getWidth();
-    public abstract boolean contain(float x, float y);
 
-    public void setPath(ArrayList<Point> newPath){
-        path = newPath;
-        pathTarget = null;
+    public boolean contain(float x, float y) {
+
+        for (Fixture fix: body.getFixtureList()) {
+            if (fix.testPoint(x,y)){
+                return true;
+            }
+        }
+        return false;
+    }
+
+
+    public boolean intersect(float x, float y, float width, float height) {
+
+        final Boolean[] found = {false};
+
+        body.getWorld().QueryAABB(new QueryCallback() {
+            @Override
+            public boolean reportFixture(Fixture fixture) {
+                found[0] =  body.getFixtureList().contains(fixture,false);
+                return !found[0];
+            }
+        },x, y, x+width, y+height);
+
+        return found[0];
     }
 
     public Vector2 getDirection() {
         return direction;
+    }
+    public void setSelected(boolean selected) {
+        this.selected = selected;
+    }
+    public boolean isSelected() {
+        return selected;
+    }
+
+    public void setLeader(Tank tank) {
+        follower = true;
+        leader = tank;
+        path=null;
+    }
+
+    public void setPath(ArrayList<Point> newPath){
+        path = newPath;
+        pathTarget = null;
+        follower=false;
+    }
+
+    public Vector2 getPosition() {
+        return body.getPosition();
     }
 }

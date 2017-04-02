@@ -40,7 +40,6 @@ public class Node implements Comparable {
         float DeltaY = CircleY - Math.max(Y, Math.min(CircleY, Y + Width));
 
         return (DeltaX * DeltaX + DeltaY * DeltaY) < (CircleRadius * CircleRadius);
-
     }
 
     // Node intersect Rectangle

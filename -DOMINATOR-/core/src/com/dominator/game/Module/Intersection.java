@@ -28,7 +28,7 @@ public class Intersection {
                 LineIntersectsLine(x1,y1,x2,y2, X + Width, Y, X + Width, Y + Height) ||
                 LineIntersectsLine(x1,y1,x2,y2, X + Width, Y + Width, X, Y + Height) ||
                 LineIntersectsLine(x1,y1,x2,y2, X, Y + Width, X,Y) ||
-                (contain(x1,y1,X,Y,Width,Height) && contain(x2,y2,X,Y,Width,Height));
+                (Rectcontain(x1,y1,X,Y,Width,Height) && Rectcontain(x2,y2,X,Y,Width,Height));
     }
 
     private static boolean LineIntersectsLine(float x1, float y1, float x2,float y2,float x3,float y3, float x4, float y4)
@@ -41,12 +41,12 @@ public class Intersection {
     }
 
     // Rectangle X, Y contain point x,y ?
-    public static boolean contain(float x, float y, float X, float Y, float Width, float Height) {
+    public static boolean Rectcontain(float x, float y, float X, float Y, float Width, float Height) {
         return !(x>=X+Width || y>=Y+Height || x<=X || y<=Y);
     }
 
     private static boolean contain(Point p,float X, float Y, float Width, float Height) {
-        return contain(p.x,p.y,X,Y, Width, Height);
+        return Rectcontain(p.x,p.y,X,Y, Width, Height);
     }
 
     public static int relativeCCW(double x1, double y1,
@@ -87,11 +87,26 @@ public class Intersection {
 
     private static boolean onSegment(Point p, Point q, Point r)
     {
-        if (q.x <= Math.max(p.x, r.x) && q.x >= Math.min(p.x, r.x) &&
-                q.y <= Math.max(p.y, r.y) && q.y >= Math.min(p.y, r.y))
-            return true;
-
+        if (q.x <= Math.max(p.x, r.x))
+            if (q.x >= Math.min(p.x, r.x)) if (q.y <= Math.max(p.y, r.y)) if (q.y >= Math.min(p.y, r.y)) return true;
         return false;
+
     }
 
+
+    public static boolean CircleIntesectsRect(float CircleX, float CircleY, float CircleRadius, float X, float Y, float Width, float Height){
+
+        float DeltaX = CircleX - Math.max(X, Math.min(CircleX, X + Width));
+        float DeltaY = CircleY - Math.max(Y, Math.min(CircleY, Y + Height));
+
+        return (DeltaX * DeltaX + DeltaY * DeltaY) < (CircleRadius * CircleRadius);
+    }
+
+    public static boolean CircleContainPoint(float cx, float cy, float range, float X, float Y) {
+        return (X - cx) * (X - cx) + (Y - cy) * (Y - cy) <= (range) * (range);
+    }
+
+    public static boolean CircleIntesectsCircle(float x1, float y1, float radius1, float x2, float y2, float radius2) {
+        return Math.abs(x1-x2) + Math.abs(y1-y2) <= radius1+radius2;
+    }
 }

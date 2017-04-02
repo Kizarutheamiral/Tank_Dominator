@@ -14,6 +14,8 @@ public interface CONSTANT {
 
     int step = 10;
     int scale = 100;   // 1 m = 100 px
-    int abramsScale = 50;
-    int abramsTourelleScale = 50;
+    int abramsScale = 40;
+    int M12Scale = 30;
+    int X_UNIT = scale*2;
+    int Y_UNIT = scale*2;
 }

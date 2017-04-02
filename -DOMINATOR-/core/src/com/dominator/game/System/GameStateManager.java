@@ -11,8 +11,16 @@ import static com.dominator.game.CONSTANT.*;
 
 /**
  * Created by Choujaa Wassil on 24/03/2017.
+ *
  */
 public class GameStateManager {
+
+    public enum GameState {
+        PLAY,
+        PAUSE,
+        MENU
+    }
+
 
     private GameState state = GameState.MENU;
 
@@ -22,12 +30,13 @@ public class GameStateManager {
 
     public  JsonToBody.RigidBodyModel Abrams;
 
-    public JsonToBody.RigidBodyModel AbramsTourelle;
+    public  JsonToBody.RigidBodyModel AbramsTourelle;
 
+    public JsonToBody.RigidBodyModel M12;
+
+    public JsonToBody.RigidBodyModel M12Tourelle;
 
     public JsonToBody.RigidBodyModel Map;
-
-    public static JsonToBody.RigidBodyModel Tank2;
 
 
     public static GameStateManager instance(){
@@ -71,11 +80,16 @@ public class GameStateManager {
         JsonToBody loader =  new JsonToBody();
         loader.loadFromJSon(Gdx.files.internal("map.json"),scale);
         loader.loadFromJSon(Gdx.files.internal("abrams.json"),abramsScale);
-        loader.loadFromJSon(Gdx.files.internal("abrams_tourelle.json"), abramsTourelleScale);
+        loader.loadFromJSon(Gdx.files.internal("abrams_tourelle.json"), abramsScale);
+        loader.loadFromJSon(Gdx.files.internal("m12.json"),M12Scale);
+        loader.loadFromJSon(Gdx.files.internal("m12_tourelle.json"), M12Scale);
 
         Map = loader.model.rigidBodies.get("map");
         Abrams = loader.model.rigidBodies.get("abrams");
         AbramsTourelle = loader.model.rigidBodies.get("abrams_tourelle");
+        M12 = loader.model.rigidBodies.get("M12");
+        M12Tourelle = loader.model.rigidBodies.get("M12Tourelle");
+
 
     }
 }
