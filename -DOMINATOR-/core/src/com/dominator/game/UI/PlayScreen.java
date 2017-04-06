@@ -30,6 +30,7 @@ public class PlayScreen implements Screen, GestureDetector.GestureListener, Inpu
     public OrthographicCamera camera;
     public Pathfinder finder;
     private  ShapeRenderer shapeRenderer;
+    private ShapeRenderer fillRenderer;
     private boolean debug = true;
     private Texture texture;
     private boolean DoubleCount=false;
@@ -54,7 +55,7 @@ public class PlayScreen implements Screen, GestureDetector.GestureListener, Inpu
         batch = new SpriteBatch();
         render = new Box2DDebugRenderer();
         shapeRenderer = new ShapeRenderer();
-
+        fillRenderer = new ShapeRenderer();
         float w = Gdx.graphics.getWidth();
         float h = Gdx.graphics.getHeight();
 
@@ -79,6 +80,8 @@ public class PlayScreen implements Screen, GestureDetector.GestureListener, Inpu
         render.render(GameEventManager.instance().engine.getWorld(),camera.combined);
         shapeRenderer.setProjectionMatrix(camera.combined);
         shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+        fillRenderer.setProjectionMatrix(camera.combined);
+        fillRenderer.begin(ShapeRenderer.ShapeType.Filled);
 
         if(debug) {
 
@@ -101,20 +104,10 @@ public class PlayScreen implements Screen, GestureDetector.GestureListener, Inpu
         for (Tank tank: GameEventManager.instance().tanks) {
             shapeRenderer.setColor(1, 1, 0, 1);
 
-            float width = step;
-
-            if(tank.pathTarget != null){
-                shapeRenderer.circle(tank.pathTarget.x,tank.pathTarget.y,width);
-
-            }
-
-            if (tank.isSelected()){
-                shapeRenderer.setColor(1, 0.5f, 0, 1);
-                shapeRenderer.circle(tank.getX(),tank.getY(),step);
-            }
+            tank.draw(shapeRenderer,fillRenderer);
 
 
-            shapeRenderer.line(tank.getX(),tank.getY(), tank.getX()+ tank.getDirection().x,tank.getY() +tank.getDirection().y);
+            //shapeRenderer.line(tank.getX(),tank.getY(), tank.getX()+ tank.getDirection().x,tank.getY() +tank.getDirection().y);
         }
 
         shapeRenderer.setColor(1, 1, 0, 1);
@@ -122,8 +115,9 @@ public class PlayScreen implements Screen, GestureDetector.GestureListener, Inpu
         if(dragging){
             shapeRenderer.rect(selectionRectangle.x,selectionRectangle.y,selectionRectangle.width,selectionRectangle.height);
         }
-        shapeRenderer.end();
 
+        shapeRenderer.end();
+        fillRenderer.end();
         batch.begin();
         //: batch.draw(texture, 10, 10);
         batch.end();
@@ -300,7 +294,6 @@ public class PlayScreen implements Screen, GestureDetector.GestureListener, Inpu
     @Override
     public boolean touchDown(int x, int y, int pointer, int button) {
         DragContextBegin.set(x,y,0);
-
         return false;
     }
 
@@ -309,7 +302,9 @@ public class PlayScreen implements Screen, GestureDetector.GestureListener, Inpu
 
         Vector3 unproject = camera.unproject(DragContextBegin.cpy());
 
-        GameEventManager.instance().touchEvent(unproject.x,unproject.y,!dragging);
+        boolean selection = dragging ;
+
+        GameEventManager.instance().touchEvent(unproject.x,unproject.y,selection);
 
         selectionRectangle.set(0,0,0,0);
 

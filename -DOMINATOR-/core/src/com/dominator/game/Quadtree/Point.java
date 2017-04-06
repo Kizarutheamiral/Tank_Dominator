@@ -11,6 +11,9 @@ public class Point {
         y = p1;
     }
 
+    public Point() {
+    }
+
     public float getX() {
         return x;
     }

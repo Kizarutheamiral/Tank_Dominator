@@ -19,7 +19,7 @@ public class Pathfinder {
     private final List<AstarNodes> vectorPool = new ArrayList<AstarNodes>();
     private Array<AstarNodes> closed = new Array<AstarNodes>();
     private SortedList open = new SortedList();
-    private ArrayList<Point> path = new ArrayList<Point>();
+    private Array<Vector2> path = new Array<Vector2>();
 
     public Pathfinder(QuadTree tree) {
         this.quadTree = tree;
@@ -140,22 +140,22 @@ public class Pathfinder {
         return matrix;
     }*/
 
-    public ArrayList<Point> AstarPathFrom(float x, float y, float targetX, float targetY) {
+    public Array<Vector2> AstarPathFrom(Vector2 begin, Vector2 target) {
 
-        Node beginNode = (Node) quadTree.get(x, y, null);
-        Node targetNode = (Node) quadTree.get(targetX, targetY, null);
-
-        if (beginNode == null || targetNode == null) {
-            return null;
-        }
-
-
+        Node beginNode = (Node) quadTree.get(begin.x, begin.y, null);
+        Node targetNode = (Node) quadTree.get(target.x,target.y, null);
 
         closed.clear();
         open.clear();
         path.clear();
+        path.shrink();
 
-        open.add(getNewVec().set(x,y, beginNode.getNeighbours(), null, targetNode));
+        if (beginNode == null || targetNode == null) {
+            path.add(target);
+            return new Array<Vector2>(path);
+        }
+
+        open.add(getNewVec().set(begin.x,begin.y, beginNode.getNeighbours(), null, targetNode));
 
         while (open.size() != 0 && (open.first().getX() != targetNode.getCenterX() || open.first().getY() != targetNode.getCenterY())) {
 
@@ -196,30 +196,30 @@ public class Pathfinder {
         }
 
 
-        AstarNodes last = null;
+        AstarNodes last;
 
         if(open.size() != 0){
-            last = getNewVec().set(targetX,targetY,null,open.first().parent,null);
+            last = getNewVec().set(target.x,target.y,null,open.first().parent,null);
 
         } else {
-            last = getNewVec().set(targetX,targetY,null,closed.get(closed.size-1).parent,null);
+            last = getNewVec().set(target.x,target.y,null,closed.get(closed.size-1).parent,null);
 
         }
 
-        path.add(new Point(last.getX(),last.getY()));
+        path.add(new Vector2(last.getX(),last.getY()));
 
 
 
         while (last.parent != null){
             last = last.parent;
-            path.add(new Point(last.getX(),last.getY()));
+            path.add(new Vector2(last.getX(),last.getY()));
         }
 
-        Collections.reverse(path);
+        path.removeIndex(path.size-1);
 
-        path.remove(0);
+        System.out.println("finder of size :"+path.size);
 
-        return (ArrayList<Point>) path.clone();
+        return new Array<Vector2>(path);
         // contruct path from current;
     }
     /**

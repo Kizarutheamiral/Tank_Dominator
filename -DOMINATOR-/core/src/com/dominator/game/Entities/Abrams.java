@@ -21,7 +21,7 @@ public class Abrams extends Tank{
     private float tourelleSpeed = 40f;
 
     public Abrams(float x, float y, World world, Map map) {
-        super(400f,30f , map);
+        super(400f,30f ,10f, map, 150f, 30f);
 
         JsonToBody.RigidBodyModel model = GameStateManager.instance().Abrams;
 
@@ -77,14 +77,14 @@ public class Abrams extends Tank{
         tourelle.setAngularDamping(20f);
 
         // body.getPosition().set(new Vector2(x,y));
-
         setupFriction();
+
     }
 
 
     @Override
     public void update() {
-        move();
+        movement.update().rotate(tourelle,movement.getPathTarget(),tourelleSpeed);
         attack();
     }
 
@@ -92,38 +92,6 @@ public class Abrams extends Tank{
     public void attack() {
         large_Calibre_Attack();
     }
-
-    @Override
-    public boolean rotate() {
-
-        Vector2 orientation = tourelle.getTransform().getOrientation().cpy();
-        Vector2 direction = getDirection();
-
-        float orientationAngle = (direction.angle() - orientation.angle() < -180f) ?orientation.angle() - 360f : orientation.angle();
-
-        float delta = direction.angle() - orientationAngle;
-
-        if(delta>=180f){
-            delta-=360f;
-        }
-
-        tourelle.applyAngularImpulse(delta*tourelleSpeed,true);
-
-        orientation = body.getTransform().getOrientation().cpy();
-
-        orientationAngle = (direction.angle() - orientation.angle() < -180f) ? orientation.angle() - 360f : orientation.angle();
-
-        delta = direction.angle() - orientationAngle;
-
-        if(delta>=180f){
-            delta-=360f;
-        }
-
-        body.applyAngularImpulse(delta*rotationSpeed,true);
-
-        return  Math.abs(delta)<20;
-    }
-
 
     @Override
     public float getWidth() {
@@ -143,8 +111,4 @@ public class Abrams extends Tank{
         this.heigth = heigth;
     }
 
-    @Override
-    public void show(Batch batch) {
-        super.show(batch);
-    }
 }

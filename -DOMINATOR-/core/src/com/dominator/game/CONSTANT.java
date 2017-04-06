@@ -18,4 +18,6 @@ public interface CONSTANT {
     int M12Scale = 30;
     int X_UNIT = scale*2;
     int Y_UNIT = scale*2;
+
+    float UNIT_SPACING=step*4;
 }
